@@ -10,11 +10,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import pro.sky.telegrambot.model.NotificationTask;
 import pro.sky.telegrambot.repository.NotificationTaskRepository;
+import pro.sky.telegrambot.timer.BotTimer;
 
 import javax.annotation.PostConstruct;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,9 +28,12 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
     private final NotificationTaskRepository repository;
 
-    public TelegramBotUpdatesListener(TelegramBot telegramBot, NotificationTaskRepository repository) {
+    private final BotTimer timer;
+
+    public TelegramBotUpdatesListener(TelegramBot telegramBot, NotificationTaskRepository repository, BotTimer timer) {
         this.telegramBot = telegramBot;
         this.repository = repository;
+        this.timer = timer;
     }
 
     @PostConstruct
@@ -101,16 +104,9 @@ public class TelegramBotUpdatesListener implements UpdatesListener {
 
 
     @Scheduled(cron = "0 0/1 * * * *")
-    public void check() {
+    public void checkTasks() {
 
-        List<NotificationTask> tasks = repository.findAll();
-
-        for (NotificationTask task : tasks) {
-            if (task.getDate().equals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES))) {
-                telegramBot.execute(new SendMessage(task.getUserId(), task.getText()));
-                repository.delete(task);
-            }
-        }
+        timer.check();
     }
 
 }
